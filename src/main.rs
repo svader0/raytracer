@@ -1,9 +1,15 @@
 use std::{io::stdout, time::Duration};
 
+use hit::Hittables;
 use indicatif::{ProgressBar, ProgressStyle};
-use util::{Color, Ray, Vec3};
+use ray::Ray;
+use vec3::Vec3;
 
+pub mod hit;
+pub mod ray;
+pub mod sphere;
 pub mod util;
+pub mod vec3;
 
 fn main() {
     let aspect_ratio = 16.0 / 9.0;
@@ -12,6 +18,16 @@ fn main() {
     // Calculate the image height, and ensure that it's at least 1.
     let mut image_height: u32 = (image_width as f64 / aspect_ratio) as u32;
     image_height = image_height.clamp(1, image_height);
+
+    let mut world = Hittables::new();
+    world.add(Box::new(sphere::Sphere::new(
+        Vec3::new(0.0, 0.0, -1.0),
+        0.5,
+    )));
+    world.add(Box::new(sphere::Sphere::new(
+        Vec3::new(0.0, -100.5, -1.0),
+        100.0,
+    )));
 
     // Camera settings
     let focal_length = 1.0;
@@ -49,7 +65,7 @@ fn main() {
                 pixel00_loc + (i as f64 * pixel_delta_u) + (j as f64 * pixel_delta_v);
             let direction = pixel_center - camera_center;
             let ray = Ray::new(camera_center, direction);
-            let color = ray.color();
+            let color = ray.color(&world);
             color.write_color(&mut stdout());
         }
     }
