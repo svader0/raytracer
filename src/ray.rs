@@ -1,5 +1,5 @@
 use crate::{
-    hit::Hittable,
+    hit::{HitRecord, Hittable},
     util::Interval,
     vec3::{Color, Vec3},
 };
@@ -24,23 +24,30 @@ impl Ray {
         self.origin + self.direction * t
     }
 
-    // Given a ray, return its color.
-    pub fn color(&self, world: &dyn Hittable) -> Color {
-        let mut hit_record = crate::hit::HitRecord::new();
-        if world.hit(
-            self,
-            Interval {
-                min: 0.0,
-                max: f64::INFINITY,
-            },
-            &mut hit_record,
-        ) {
-            let direction = Vec3::random_on_hemisphere(hit_record.normal);
-            return 0.5 * Ray::new(hit_record.p, direction).color(world);
+    pub fn color(&self, world: &dyn Hittable, depth: u32) -> Color {
+        // If we've exceeded the ray bounce limit, no more light is gathered.
+        if depth <= 0 {
+            return Color::new(0.0, 1.0, 0.0);
         }
+
+        let mut rec = HitRecord::new();
+
+        // If the ray hits an object, scatter the ray and return the color of the scattered ray
+        if world.hit(self, Interval::new(0.001, f64::INFINITY), &mut rec) {
+            let mut scattered = Ray::new(Vec3::new(0.0, 0.0, 0.0), Vec3::new(0.0, 0.0, 0.0));
+            let mut attenuation = Color::new(0.0, 0.0, 0.0);
+            if rec
+                .material
+                .scatter(self, &rec, &mut attenuation, &mut scattered)
+            {
+                return attenuation * scattered.color(world, depth - 1);
+            }
+            return Color::new(0.0, 0.0, 0.0);
+        }
+
         let unit_direction = self.direction.unit_vector();
-        let a = 0.5 * (unit_direction.y + 1.0);
-        (1.0 - a) * Color::new(1.0, 1.0, 1.0) + a * Color::new(0.5, 0.7, 1.0)
+        let t = 0.5 * (unit_direction.y + 1.0);
+        (1.0 - t) * Color::new(1.0, 1.0, 1.0) + t * Color::new(0.5, 0.7, 1.0)
     }
 
     pub fn hit_sphere(&self, center: Point3, radius: f64) -> f64 {

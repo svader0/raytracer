@@ -4,7 +4,7 @@ use indicatif::{ProgressBar, ProgressStyle};
 
 use crate::{
     hit::Hittables,
-    ray::{self, Ray},
+    ray::Ray,
     vec3::{Color, Vec3},
 };
 
@@ -18,19 +18,26 @@ pub struct Camera {
     pixel00_loc: Vec3,
     pub samples_per_pixel: u32,
     pixel_sample_scale: f64,
+    pub max_depth: u32,
 }
 
 impl Camera {
-    pub fn new(aspect_ratio: f64, image_width: u32, samples_per_pixel: u32) -> Camera {
+    pub fn new(
+        aspect_ratio: f64,
+        image_width: u32,
+        samples_per_pixel: u32,
+        max_depth: u32,
+    ) -> Camera {
         let aspect_ratio = aspect_ratio;
         let image_width = image_width;
         let samples_per_pixel = samples_per_pixel;
+        let max_depth = max_depth;
 
         // Calculate the image height, and ensure that it's at least 1.
         let mut image_height: u32 = (image_width as f64 / aspect_ratio) as u32;
         image_height = image_height.clamp(1, image_height);
 
-        let focal_length = 1.0;
+        let focal_length = 0.8;
         let viewport_height = 2.0;
         let viewport_width = viewport_height * ((image_width as f64) / (image_height as f64));
         let camera_center = Vec3::new(0.0, 0.0, 0.0);
@@ -59,6 +66,7 @@ impl Camera {
             pixel00_loc,
             samples_per_pixel,
             pixel_sample_scale,
+            max_depth,
         }
     }
 
@@ -80,7 +88,7 @@ impl Camera {
                 let color: &mut Color = &mut Color::new(0.0, 0.0, 0.0);
                 for _ in 0..(self.samples_per_pixel as u32) {
                     let r = self.get_ray(i, j);
-                    *color += r.color(world);
+                    *color += r.color(world, self.max_depth);
                 }
                 *color = *color * self.pixel_sample_scale;
                 color.write_color(&mut stdout());

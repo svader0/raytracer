@@ -1,9 +1,7 @@
 use std::io::Write;
 use std::ops::*;
 
-use rand::random;
-
-use crate::util::{random_float_range, Interval};
+use crate::util::{linear_to_gamma, random_float_range, Interval};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Vec3 {
@@ -64,6 +62,22 @@ impl Vec3 {
         }
     }
 
+    pub fn near_zero(&self) -> bool {
+        const S: f64 = 1e-8;
+        self.x.abs() < S && self.y.abs() < S && self.z.abs() < S
+    }
+
+    pub fn reflect(&self, normal: Vec3) -> Vec3 {
+        *self - 2.0 * self.dot(normal) * normal
+    }
+
+    pub fn refract(&self, n: &Vec3, etai_over_etat: f64) -> Vec3 {
+        let cos_theta = (-*self).dot(*n).min(1.0);
+        let r_out_perp = etai_over_etat * (*self + cos_theta * *n);
+        let r_out_parallel = -(1.0 - r_out_perp.length_squared()).abs().sqrt() * *n;
+        return r_out_perp + r_out_parallel;
+    }
+
     pub fn random_on_hemisphere(normal: Vec3) -> Vec3 {
         let in_unit_sphere = Vec3::random_unit_vector();
         if in_unit_sphere.dot(normal) > 0.0 {
@@ -71,6 +85,14 @@ impl Vec3 {
         } else {
             -in_unit_sphere
         }
+    }
+
+    pub fn cross(&self, other: Vec3) -> Vec3 {
+        Vec3::new(
+            self.y * other.z - self.z * other.y,
+            self.z * other.x - self.x * other.z,
+            self.x * other.y - self.y * other.x,
+        )
     }
 }
 
@@ -180,9 +202,14 @@ impl Color {
             max: 0.999,
         };
 
-        let ir = (INTENSITY.clamp(self.r) * 256.0) as i32;
-        let ig = (INTENSITY.clamp(self.g) * 256.0) as i32;
-        let ib = (INTENSITY.clamp(self.b) * 256.0) as i32;
+        // Transform colors from linear space to gamma space
+        let r = linear_to_gamma(self.r);
+        let g = linear_to_gamma(self.g);
+        let b = linear_to_gamma(self.b);
+
+        let ir = (256.0 * INTENSITY.clamp(r)) as u8;
+        let ig = (256.0 * INTENSITY.clamp(g)) as u8;
+        let ib = (256.0 * INTENSITY.clamp(b)) as u8;
 
         writeln!(out, "{} {} {}", ir, ig, ib).expect("Error writing color to output");
     }

@@ -1,22 +1,27 @@
-use std::fmt::Debug;
-use std::io::Write;
-use std::ops::{Add, Div, Mul, Neg, Sub};
-
-const infinty: f64 = f64::INFINITY;
-const pi: f64 = std::f64::consts::PI;
+const INFINITY: f64 = f64::INFINITY;
+const PI: f64 = std::f64::consts::PI;
 
 pub fn degrees_to_radians(degrees: f64) -> f64 {
-    degrees * pi / 180.0
+    degrees * PI / 180.0
 }
 
 pub fn radians_to_degrees(radians: f64) -> f64 {
-    return radians * 180.0 / pi;
+    return radians * 180.0 / PI;
 }
 
 #[inline(always)]
 pub fn random_float_range(min: f64, max: f64) -> f64 {
     // Returns a random float in [min,max)
     return min + (max - min) * rand::random::<f64>();
+}
+
+#[inline(always)]
+pub fn linear_to_gamma(linear_component: f64) -> f64 {
+    if linear_component > 0.0 {
+        return linear_component.sqrt();
+    } else {
+        return 0.0;
+    }
 }
 
 pub struct Interval {
@@ -53,11 +58,11 @@ impl Interval {
 }
 
 const EMPTY_INTERVAL: Interval = Interval {
-    min: infinty,
-    max: -infinty,
+    min: INFINITY,
+    max: -INFINITY,
 };
 
 const UNIVERSE_INTERVAL: Interval = Interval {
-    min: -infinty,
-    max: infinty,
+    min: -INFINITY,
+    max: INFINITY,
 };

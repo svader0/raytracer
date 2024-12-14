@@ -1,11 +1,15 @@
+use std::sync::Arc;
+
+use crate::material::{Lambertian, Material};
 use crate::ray::Ray;
 use crate::util::Interval;
-use crate::vec3::Vec3;
+use crate::vec3::{Color, Vec3};
 
 pub struct HitRecord {
     pub front_face: bool,
     pub p: Vec3,
     pub normal: Vec3,
+    pub material: Arc<dyn Material>,
     pub t: f64,
 }
 
@@ -15,6 +19,7 @@ impl HitRecord {
             front_face: false,
             p: Vec3::new(0.0, 0.0, 0.0),
             normal: Vec3::new(0.0, 0.0, 0.0),
+            material: Arc::new(Lambertian::new(Color::new(0.0, 0.0, 0.0))),
             t: 0.0,
         }
     }
@@ -70,6 +75,7 @@ impl Hittable for Hittables {
                 rec.normal = temp_rec.normal;
                 rec.t = temp_rec.t;
                 rec.front_face = temp_rec.front_face;
+                rec.material = Arc::clone(&temp_rec.material);
             }
         }
 
