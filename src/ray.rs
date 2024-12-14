@@ -1,5 +1,6 @@
 use crate::{
     hit::Hittable,
+    util::Interval,
     vec3::{Color, Vec3},
 };
 
@@ -26,8 +27,16 @@ impl Ray {
     // Given a ray, return its color.
     pub fn color(&self, world: &dyn Hittable) -> Color {
         let mut hit_record = crate::hit::HitRecord::new();
-        if world.hit(self, 0.0, f64::INFINITY, &mut hit_record) {
-            return 0.5 * (hit_record.normal + Color::new(1.0, 1.0, 1.0));
+        if world.hit(
+            self,
+            Interval {
+                min: 0.0,
+                max: f64::INFINITY,
+            },
+            &mut hit_record,
+        ) {
+            let direction = Vec3::random_on_hemisphere(hit_record.normal);
+            return 0.5 * Ray::new(hit_record.p, direction).color(world);
         }
         let unit_direction = self.direction.unit_vector();
         let a = 0.5 * (unit_direction.y + 1.0);

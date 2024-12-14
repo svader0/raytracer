@@ -1,6 +1,10 @@
 use std::io::Write;
 use std::ops::*;
 
+use rand::random;
+
+use crate::util::{random_float_range, Interval};
+
 #[derive(Debug, Clone, Copy)]
 pub struct Vec3 {
     pub x: f64,
@@ -32,6 +36,41 @@ impl Vec3 {
 
     pub fn dot(&self, other: Vec3) -> f64 {
         self.x * other.x + self.y * other.y + self.z * other.z
+    }
+
+    pub fn random() -> Vec3 {
+        Vec3::new(
+            rand::random::<f64>(),
+            rand::random::<f64>(),
+            rand::random::<f64>(),
+        )
+    }
+
+    pub fn random_range(min: f64, max: f64) -> Vec3 {
+        Vec3::new(
+            random_float_range(min, max),
+            random_float_range(min, max),
+            random_float_range(min, max),
+        )
+    }
+
+    pub fn random_unit_vector() -> Vec3 {
+        let p = Vec3::random_range(-1.0, 1.0);
+        let lensq = p.length_squared();
+        if lensq > 1.0 && lensq > 1e-6 {
+            p / lensq.sqrt()
+        } else {
+            p
+        }
+    }
+
+    pub fn random_on_hemisphere(normal: Vec3) -> Vec3 {
+        let in_unit_sphere = Vec3::random_unit_vector();
+        if in_unit_sphere.dot(normal) > 0.0 {
+            in_unit_sphere
+        } else {
+            -in_unit_sphere
+        }
     }
 }
 
@@ -123,9 +162,7 @@ impl Add<Color> for Vec3 {
     }
 }
 
-// type alias for making geometric code more readable
-type Point3 = Vec3;
-
+#[derive(Debug, Clone, Copy)]
 pub struct Color {
     r: f64,
     g: f64,
@@ -138,9 +175,15 @@ impl Color {
     }
 
     pub fn write_color(&self, out: &mut std::io::Stdout) {
-        let ir = (255.999 * self.r) as i32;
-        let ig = (255.999 * self.g) as i32;
-        let ib = (255.999 * self.b) as i32;
+        static INTENSITY: Interval = Interval {
+            min: 0.0,
+            max: 0.999,
+        };
+
+        let ir = (INTENSITY.clamp(self.r) * 256.0) as i32;
+        let ig = (INTENSITY.clamp(self.g) * 256.0) as i32;
+        let ib = (INTENSITY.clamp(self.b) * 256.0) as i32;
+
         writeln!(out, "{} {} {}", ir, ig, ib).expect("Error writing color to output");
     }
 }
@@ -182,5 +225,11 @@ impl Sub for Color {
 
     fn sub(self, other: Color) -> Color {
         Color::new(self.r - other.r, self.g - other.g, self.b - other.b)
+    }
+}
+
+impl AddAssign for Color {
+    fn add_assign(&mut self, other: Color) {
+        *self = Color::new(self.r + other.r, self.g + other.g, self.b + other.b);
     }
 }
